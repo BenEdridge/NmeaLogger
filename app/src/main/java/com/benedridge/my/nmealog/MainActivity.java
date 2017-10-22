@@ -1,7 +1,10 @@
 package com.benedridge.my.nmealog;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.GpsStatus;
 import android.location.Location;
@@ -12,16 +15,17 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.EditText;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity implements LocationListener, GpsStatus.NmeaListener {
 
     private LocationManager locationManager;
     private String locationProvider = LocationManager.GPS_PROVIDER;
 
-    EditText editText;
-    TextView textViewNmea;
+    TextView textViewHeading;
+    TextView textViewLog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            startActivity(new Intent(this,SettingsActivity.class));
             return true;
         }
 
@@ -57,10 +62,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     public void onResume() {
         super.onResume();
 
-        editText = (EditText) findViewById(R.id.editText);
-        textViewNmea = (TextView) findViewById(R.id.textViewNmea);
+        textViewHeading = (TextView) findViewById(R.id.textViewHeading);
+        textViewLog = (TextView) findViewById(R.id.textViewLog);
 
-        locationManager.requestLocationUpdates(locationProvider, 0, 0, (LocationListener) this);
+        locationManager.requestLocationUpdates(locationProvider, 0, 0, this);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
@@ -83,15 +88,14 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
         //locationManager.removeGpsStatusListener(locationListener);
     }
 
-    //GPS stuff
     @Override
     public void onProviderEnabled(String s){
 
         if(s!=null){
-            textViewNmea.append("Location Provider Disabled " + s +"\n");
+            textViewHeading.setText("Location Provider Enabled " + s +"\n");
         }
         else{
-            textViewNmea.append("Location Provider Enabled "+"\n");
+            textViewHeading.setText("Location Provider Disabled "+"\n");
         }
         //locationManager.addGpsStatusListener(locationListener);
         //locationManager.addNmeaListener(this);
@@ -99,10 +103,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
 
     @Override
     public void onLocationChanged(Location location){
-        textViewNmea.append("Location changed: " + location.getLatitude() + " " + location.getLongitude()+"\n");
-
-        EditText editText = (EditText) findViewById(R.id.editText);
-        editText.setText(location.getLatitude() + " " + location.getLongitude());
+        textViewLog.append("Location changed: " + location.getLatitude() + " " + location.getLongitude()+"\n");
+        textViewLog.append(location.getLatitude() + " " + location.getLongitude());
     }
 
     @Override
@@ -113,15 +115,28 @@ public class MainActivity extends AppCompatActivity implements LocationListener,
     @Override
     public void onProviderDisabled(String s){
         if(s!=null){
-            textViewNmea.append("Location Provider disabled " + s +"\n");
+            textViewHeading.setText("Location Provider disabled " + s +"\n");
         }
     }
 
     @Override
     public void onNmeaReceived(long l, String s){
-
         if(s!=null){
-            textViewNmea.append("NMEA: + " + l + " : " + s+"\n");
+            textViewLog.append("NMEA: + " + l + " : " + s+"\n");
         }
+    }
+
+
+
+    //Buttons
+    public void buttonStreamOnclick (View view){
+        Toast.makeText(this, "Streaming to HTTP and USB", Toast.LENGTH_SHORT).show();
+    }
+
+    public void buttonCopyOnclick (View view){
+        ClipboardManager clip = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clipping = ClipData.newPlainText("Nmea Data",textViewLog.getText());
+        clip.setPrimaryClip(clipping);
+        Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show();
     }
 }
